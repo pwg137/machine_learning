@@ -1,0 +1,76 @@
+---
+title: "AActivityQuality"
+author: "pwg137"
+date: "Saturday, March 21, 2015"
+output: html_document
+---
+
+Prediction of Activity Quality using Machine Learning
+
+pwg137 (My email handle)
+
+Introduction
+
+For the Practical Machine Learning class, students were asked to construct a machine learning algorithm to predict activity quality from the results in a training data set.  They are asked to submit the algorithm, and discuss out of sample error estimates from cross-validation.  This paper contains the 
+results, the machine learning algorithm, and some discussion.
+
+Results
+
+The machine learning algorithm got 10 of 20 right when it was submitted against the test cases.  This is better than chance, but not great.  Probabilities of correct classification ranged from 30% to 99%.  Unsurprisingly, the higher probability items tended to be correctly classified.
+
+Algorithm
+
+The machine learning algorithm is shown below.  I commented out the file write section for use with knitr.  The approach taken was to look for physically significant variables, ensure they would be present in the test set, subset the data so as to consider only significant variables, and look for a model which could identify all of the activity classes.  Most models were unable to identify one or more classes.  The brute force approach produced a classification based on event number, and eliminating the first 7 columns produced a model that crashed on the test set.
+I opted to use the rpart method, which has a default of 10-fold cross-validation.
+
+Here is the algorithm.
+
+```{r}
+  input<-read.csv("pml-training.csv")
+	qvec<-read.csv("pml-testing.csv")
+	svec<-c(37:45,60:68,121:124,151:160)
+	newinput<-input[,svec]
+	qvecsub<-qvec[,svec]
+	library(caret)
+	library(rpart)
+	rpart.control(minsplit=10)
+	model<-train(classe~.,method="rpart",data=newinput)
+	test<-predict(model$finalModel,newdata=qvecsub,type="class")
+##	pml_write_files = function(x){
+##  		n = length(x)
+##  		for(i in 1:n){
+##    		filename = paste0("problem_id_",i,".txt")
+##    		write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+##  		}
+##	}
+##	pml_write_files(test)
+```
+
+
+
+Discussion
+
+Here is a plot of the decision tree produced by the final model.  It classifies all types of activities.  It is dominated by activity A, which is true for the data set.
+
+```{r}
+plot(model$finalModel,uniform=TRUE,main="My Decision Tree")
+  text(model$finalModel,use.n=TRUE,all=TRUE,cex=0.5)
+```
+
+
+The final model is shown here.
+
+```{r}
+model$finalModel
+```
+
+
+Cross-validation and Out-of-Sample Error
+
+The rpart method performs 10-fold cross-validation, as shown above in the execution of the machine learning algorithm,  The object cptable in the final model is supposed to contain information regarding complexity parameters and out of sample error.  Unfortunately, it doesn't.  The cptable object is summarized below.
+
+
+```{r}
+summary(model$finalModel$cptable)
+```
+
